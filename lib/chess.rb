@@ -2,6 +2,7 @@ require_relative 'pieces.rb'
 
 class Chess
 	attr_accessor :board, :game_over, :turn
+	include Pieces
 
 	def initialize
 		@board = Hash.new
@@ -12,7 +13,7 @@ class Chess
 	def create_board
 		1.upto(8) do |x|
 			1.upto(8) do |y|
-				board["#{x}, #{y}"] = Space.new(x, y)
+				board["#{x}, #{y}"] = Pieces::Space.new
 			end
 		end
 	end
@@ -20,30 +21,30 @@ class Chess
 	def create_pieces
 		#create pawns
 		1.upto(8) do |x|
-			board["#{x}, 2"] = Pawn.new("white", x, 2, "wP")
-			board["#{x}, 7"] = Pawn.new("black", x, 7, "bP")
+			board["#{x}, 2"] = Pieces::Pawn.new("white", x, 2, "wP")
+			board["#{x}, 7"] = Pieces::Pawn.new("black", x, 7, "bP")
 		end
 		#create rooks
-		board["1, 1"] = Rook.new("white", 1, 1, "wR")
-		board["8, 1"] = Rook.new("white", 8, 1, "wR")
-		board["1, 8"] = Rook.new("black", 1, 8, "bR")
-		board["8, 8"] = Rook.new("black", 8, 8, "bR")
+		board["1, 1"] = Pieces::Rook.new("white", 1, 1, "wR")
+		board["8, 1"] = Pieces::Rook.new("white", 8, 1, "wR")
+		board["1, 8"] = Pieces::Rook.new("black", 1, 8, "bR")
+		board["8, 8"] = Pieces::Rook.new("black", 8, 8, "bR")
 		#create knights
-		board["2, 1"] = Knight.new("white", 1, 1, "wK")
-		board["7, 1"] = Knight.new("white", 8, 1, "wK")
-		board["2, 8"] = Knight.new("black", 1, 8, "bK")
-		board["7, 8"] = Knight.new("black", 8, 8, "bK")
+		board["2, 1"] = Pieces::Knight.new("white", 1, 1, "wK")
+		board["7, 1"] = Pieces::Knight.new("white", 8, 1, "wK")
+		board["2, 8"] = Pieces::Knight.new("black", 1, 8, "bK")
+		board["7, 8"] = Pieces::Knight.new("black", 8, 8, "bK")
 		#create bishops
-		board["3, 1"] = Bishop.new("white", 1, 1, "wB")
-		board["6, 1"] = Bishop.new("white", 8, 1, "wB")
-		board["3, 8"] = Bishop.new("black", 1, 8, "bB")
-		board["6, 8"] = Bishop.new("black", 8, 8, "bB")
+		board["3, 1"] = Pieces::Bishop.new("white", 1, 1, "wB")
+		board["6, 1"] = Pieces::Bishop.new("white", 8, 1, "wB")
+		board["3, 8"] = Pieces::Bishop.new("black", 1, 8, "bB")
+		board["6, 8"] = Pieces::Bishop.new("black", 8, 8, "bB")
 		#create kings
-		board["5, 1"] = King.new("white", 1, 1, "WK")
-		board["5, 8"] = King.new("black", 1, 8, "BK")
+		board["5, 1"] = Pieces::King.new("white", 1, 1, "WK")
+		board["5, 8"] = Pieces::King.new("black", 1, 8, "BK")
 		#create queens
-		board["4, 1"] = Queen.new("white", 1, 1, "wQ")
-		board["4, 8"] = Queen.new("black", 1, 8, "bQ")
+		board["4, 1"] = Pieces::Queen.new("white", 1, 1, "wQ")
+		board["4, 8"] = Pieces::Queen.new("black", 1, 8, "bQ")
 	end
 
 	def show_board
@@ -74,9 +75,13 @@ class Chess
 	def move_valid(piece, move)
 		x = piece[0]
 		y = piece[1]
+		a = move[0]
+		b = move[1]
+		selected = board.fetch("#{x}, #{y}")
 
-		if board["#{x}, {y}"].possible_moves(piece).include? move
-
+		if selected.possible_moves(piece).include? move
+			board["#{a}, #{b}"] = board.fetch("#{x}, #{y}")
+			board["#{x}, #{y}"] = Pieces::Space.new
 		end
 
 	end
@@ -93,6 +98,7 @@ class Chess
 		end
 
 	end
+
 
 
 end
