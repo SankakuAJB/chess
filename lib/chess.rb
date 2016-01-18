@@ -21,30 +21,30 @@ class Chess
 	def create_pieces
 		#create pawns
 		1.upto(8) do |x|
-			board["#{x}, 2"] = Pieces::Pawn.new("white", x, 2, "wP")
-			board["#{x}, 7"] = Pieces::Pawn.new("black", x, 7, "bP")
+			board["#{x}, 2"] = Pieces::Pawn.new("white", "wP")
+			board["#{x}, 7"] = Pieces::Pawn.new("black", "bP")
 		end
 		#create rooks
-		board["1, 1"] = Pieces::Rook.new("white", 1, 1, "wR")
-		board["8, 1"] = Pieces::Rook.new("white", 8, 1, "wR")
-		board["1, 8"] = Pieces::Rook.new("black", 1, 8, "bR")
-		board["8, 8"] = Pieces::Rook.new("black", 8, 8, "bR")
+		board["1, 1"] = Pieces::Rook.new("white", "wR")
+		board["8, 1"] = Pieces::Rook.new("white", "wR")
+		board["1, 8"] = Pieces::Rook.new("black", "bR")
+		board["8, 8"] = Pieces::Rook.new("black", "bR")
 		#create knights
-		board["2, 1"] = Pieces::Knight.new("white", 1, 1, "wK")
-		board["7, 1"] = Pieces::Knight.new("white", 8, 1, "wK")
-		board["2, 8"] = Pieces::Knight.new("black", 1, 8, "bK")
-		board["7, 8"] = Pieces::Knight.new("black", 8, 8, "bK")
+		board["2, 1"] = Pieces::Knight.new("white", "wK")
+		board["7, 1"] = Pieces::Knight.new("white", "wK")
+		board["2, 8"] = Pieces::Knight.new("black", "bK")
+		board["7, 8"] = Pieces::Knight.new("black", "bK")
 		#create bishops
-		board["3, 1"] = Pieces::Bishop.new("white", 1, 1, "wB")
-		board["6, 1"] = Pieces::Bishop.new("white", 8, 1, "wB")
-		board["3, 8"] = Pieces::Bishop.new("black", 1, 8, "bB")
-		board["6, 8"] = Pieces::Bishop.new("black", 8, 8, "bB")
+		board["3, 1"] = Pieces::Bishop.new("white", "wB")
+		board["6, 1"] = Pieces::Bishop.new("white", "wB")
+		board["3, 8"] = Pieces::Bishop.new("black", "bB")
+		board["6, 8"] = Pieces::Bishop.new("black", "bB")
 		#create kings
-		board["5, 1"] = Pieces::King.new("white", 1, 1, "WK")
-		board["5, 8"] = Pieces::King.new("black", 1, 8, "BK")
+		board["5, 1"] = Pieces::King.new("white", "WK")
+		board["5, 8"] = Pieces::King.new("black", "BK")
 		#create queens
-		board["4, 1"] = Pieces::Queen.new("white", 1, 1, "wQ")
-		board["4, 8"] = Pieces::Queen.new("black", 1, 8, "bQ")
+		board["4, 1"] = Pieces::Queen.new("white", "wQ")
+		board["4, 8"] = Pieces::Queen.new("black", "bQ")
 	end
 
 	def show_board
@@ -58,7 +58,7 @@ class Chess
 
 	def pick_piece
 		arr = []
-		puts "please pick a piece to move (x than y co-ordinate)"
+		puts "#{turn} please pick a piece to move (x than y co-ordinate)"
 		arr << gets.chomp.to_i
 		arr << gets.chomp.to_i
 		return arr
@@ -66,7 +66,7 @@ class Chess
 
 	def pick_move
 		arr = []
-		puts "please pick where you'd like to move selected piece"
+		puts "#{turn} please pick where you'd like to move selected piece"
 		arr << gets.chomp.to_i
 		arr << gets.chomp.to_i
 		return arr
@@ -77,15 +77,113 @@ class Chess
 		y = piece[1]
 		a = move[0]
 		b = move[1]
+		possibilities = []
 		selected = board.fetch("#{x}, #{y}")
 
-		if selected.possible_moves(piece).include? move
+		if selected.instance_of? Space
+			return
+		elsif selected.instance_of? Pawn
+			possibilities = pawn_moves(piece, move)
+		elsif selected.instance_of? Knight
+			possibilities = knight_moves(piece, move)
+		else
+			possibilities = rbq_moves(piece, move)	
+		end	
+
+		if possibilities.include? move
+			selected.first_move = false if selected.first_move == true
 			board["#{a}, #{b}"] = board.fetch("#{x}, #{y}")
 			board["#{x}, #{y}"] = Pieces::Space.new
+			return true
 		end
 
 	end
 
+	def knight_moves(piece, move)
+		x = piece[0]
+		y = piece[1]
+		possibilities = Array.new
+		selected = board.fetch("#{x}, #{y}")
+
+		selected.options.each do |arr|
+			pos = []
+			pos << (x + arr[0])
+			pos << (y + arr[1])
+
+			if pos.all? {|value| value >= 1} && pos.all? {|value| value <= 8} && (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn)
+				possibilities << pos
+			end
+
+		end
+
+		possibilities
+	end
+
+	def pawn_moves(piece, move)
+		x = piece[0]
+		y = piece[1]
+		a = move[0]
+		b = move[1]
+		possibilities = []
+		selected = board.fetch("#{x}, #{y}")
+		if turn == "white"
+			if selected.first_move == true 
+				possibilities = [ [x,y+1], [x,y+2] ]
+			else
+				possibilities = [[x,y+1]]
+			end 
+		end
+		if turn == "black"
+			if selected.first_move == true 
+				possibilities = [ [x,y-1], [x,y-2] ]
+			else
+				possibilities = [[x,y-1]]
+			end 
+		end
+		puts ""
+		puts move.join(", ")
+		puts possibilities.join(", ")
+		possibilities
+	end
+
+	def rbq_moves(piece, move)
+		x = piece[0]
+		y = piece[1]
+		a = move[0]
+		b = move[1]
+		spot = nil
+		pos = []
+		possibilities = Array.new
+		selected = board.fetch("#{x}, #{y}")
+		selected.options.each do |arr|
+			print arr
+			puts ""
+			puts ""
+			pos[0] = piece[0]
+			pos[1] = piece[1]
+			pos[0] += arr[0]
+			pos[1] += arr[1]
+			until pos.any? {|value| value < 1} || pos.any? {|value| value > 8} || (spot.kind_of? Piece)
+				puts "#{pos[0]}, #{pos[1]}"
+				spot = board.fetch("#{pos[0]}, #{pos[1]}")
+				if spot.instance_of? Pieces::Space
+					possibilities << [pos[0], pos[1]]
+				else
+					if spot.colour == turn
+
+					else
+						possibilities << [pos[0], pos[1]]
+					end
+				end
+				pos[0] += arr[0]
+				pos[1] += arr[1]
+			end
+		end
+		puts ""
+		puts move.join(", ")
+		puts possibilities.join(", ")
+		possibilities	
+	end
 
 	def start
 		create_board
