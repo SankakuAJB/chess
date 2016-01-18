@@ -73,6 +73,10 @@ class Chess
 	end
 
 	def move_valid(piece, move)
+		if piece.any? {|value| value >8} || piece.any? {|value| value <1} || move.any? {|value| value >8} || move.any? {|value| value <1}
+			return false
+		end
+
 		x = piece[0]
 		y = piece[1]
 		a = move[0]
@@ -84,11 +88,18 @@ class Chess
 			return
 		elsif selected.instance_of? Pawn
 			possibilities = pawn_moves(piece, move)
-		elsif selected.instance_of? Knight
-			possibilities = knight_moves(piece, move)
+		elsif (selected.instance_of? Knight) || (selected.instance_of? King)
+			possibilities = knight_king_moves(piece, move)
 		else
 			possibilities = rbq_moves(piece, move)	
 		end	
+
+		if selected.instance_of? King
+			if (check_rbq(move) == true) || (check_knight(move) == true) || (check_pawn(move) == true) || (check_king(move) == true)
+				puts "Can't make that move, would put you in check."
+				return false
+			end
+		end
 
 		if possibilities.include? move
 			selected.first_move = false if selected.first_move == true
@@ -99,7 +110,103 @@ class Chess
 
 	end
 
-	def knight_moves(piece, move)
+	def check_king(move)
+		options = [ [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1] ]
+		possibilities = Array.new
+
+		options.each do |arr|
+			pos = []
+			pos << (move[0] + arr[0])
+			pos << (move[1] + arr[1])
+			if (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn) && (board.fetch("#{pos[0]}, #{pos[1]}").instance_of? King)
+				possibilities << [pos[0], pos[1]]
+			end
+
+		end
+
+		if possibilities.empty?
+			return false
+		else
+			return true
+		end
+	end
+
+	def check_pawn(move)
+		if turn == "white"
+			options = [ [-1, 1], [1, 1] ]
+		else
+			options = [ [-1, -1], [1, -1] ]
+		end
+		possibilities = Array.new
+
+		options.each do |arr|
+			pos = []
+			pos << (move[0] + arr[0])
+			pos << (move[1] + arr[1])
+			if (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn) && (board.fetch("#{pos[0]}, #{pos[1]}").instance_of? Pawn)
+				possibilities << [pos[0], pos[1]]
+			end
+
+		end
+
+		if possibilities.empty?
+			return false
+		else
+			return true
+		end
+	end
+
+	def check_rbq(move)
+		options = [ [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1] ]
+		possibilities = Array.new
+
+		options.each do |arr|
+			spot = nil
+			pos = []
+			pos << (move[0] + arr[0])
+			pos << (move[1] + arr[1])
+
+			until (pos.any? {|value| value < 1}) || (pos.any? {|value| value > 8}) || (spot.kind_of? Piece)
+				spot = board.fetch("#{pos[0]}, #{pos[1]}")
+				if ((spot.instance_of? Bishop) || (spot.instance_of? Rook) || (spot.instance_of? Queen)) && (spot.colour != turn)
+					possibilities << [pos[0], pos[1]]
+				end
+				pos[0] += arr[0]
+				pos[1] += arr[1]
+			end
+		end
+
+		if possibilities.empty?
+			return false
+		else
+			return true
+		end
+	end
+
+	def check_knight(move)
+		options = [ [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [-1, 2], [1, -2], [-1, -2] ]
+		possibilities = Array.new
+
+		options.each do |arr|
+			pos = []
+			pos << (move[0] + arr[0])
+			pos << (move[1] + arr[1])
+
+			if (pos.all? {|value| value >= 1}) && (pos.all? {|value| value <= 8})
+				if (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn) && (board.fetch("#{pos[0]}, #{pos[1]}").instance_of? Knight)
+					possibilities << [pos[0], pos[1]]
+				end
+			end
+		end
+
+		if possibilities.empty?
+			return false
+		else
+			return true
+		end
+	end
+
+	def knight_king_moves(piece, move)
 		x = piece[0]
 		y = piece[1]
 		possibilities = Array.new
@@ -110,8 +217,10 @@ class Chess
 			pos << (x + arr[0])
 			pos << (y + arr[1])
 
-			if pos.all? {|value| value >= 1} && pos.all? {|value| value <= 8} && (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn)
-				possibilities << pos
+			if (pos.all? {|value| value >= 1}) && (pos.all? {|value| value <= 8})
+				if (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn)
+					possibilities << [pos[0], pos[1]]
+				end
 			end
 
 		end
@@ -122,9 +231,7 @@ class Chess
 	def pawn_moves(piece, move)
 		x = piece[0]
 		y = piece[1]
-		a = move[0]
-		b = move[1]
-		possibilities = []
+		possibilities = Array.new
 		selected = board.fetch("#{x}, #{y}")
 		if turn == "white"
 			if selected.first_move == true 
@@ -140,40 +247,66 @@ class Chess
 				possibilities = [[x,y-1]]
 			end 
 		end
+
+		pawn_attacks(piece).each {|arr| possibilities << arr}
+
+		possibilities.each do |arr|
+			if board.fetch("#{arr[0]}, #{arr[1]}")
+
+			end
+		end
 		puts ""
 		puts move.join(", ")
 		puts possibilities.join(", ")
 		possibilities
 	end
 
+	def pawn_attacks(piece)
+		x = piece[0]
+		y = piece[1]
+		possibilities = Array.new
+
+		if turn == "white"
+			options = [ [-1, 1], [1, 1] ]
+		else
+			options = [ [-1, -1], [1, -1] ]
+		end
+
+		options.each do |arr|
+			pos = []
+			pos << (x + arr[0])
+			pos << (y + arr[1])
+
+			if (pos.all? {|value| value >= 1}) && (pos.all? {|value| value <= 8})
+				if (board.fetch("#{pos[0]}, #{pos[1]}").kind_of? Piece) && (board.fetch("#{pos[0]}, #{pos[1]}").colour != turn)
+					possibilities << [pos[0], pos[1]]
+				end
+			end
+		end
+
+		possibilities
+	end
+
 	def rbq_moves(piece, move)
 		x = piece[0]
 		y = piece[1]
-		a = move[0]
-		b = move[1]
-		spot = nil
-		pos = []
 		possibilities = Array.new
 		selected = board.fetch("#{x}, #{y}")
 		selected.options.each do |arr|
 			print arr
 			puts ""
 			puts ""
+			pos = []
+			spot = nil
 			pos[0] = piece[0]
 			pos[1] = piece[1]
 			pos[0] += arr[0]
 			pos[1] += arr[1]
-			until pos.any? {|value| value < 1} || pos.any? {|value| value > 8} || (spot.kind_of? Piece)
-				puts "#{pos[0]}, #{pos[1]}"
+			until (pos.any? {|value| value < 1}) || (pos.any? {|value| value > 8}) || (spot.kind_of? Piece)
 				spot = board.fetch("#{pos[0]}, #{pos[1]}")
-				if spot.instance_of? Pieces::Space
+				if (spot.instance_of? Pieces::Space) || (spot.colour != turn)
 					possibilities << [pos[0], pos[1]]
-				else
-					if spot.colour == turn
-
-					else
-						possibilities << [pos[0], pos[1]]
-					end
+					puts "#{pos[0]}, #{pos[1]}"
 				end
 				pos[0] += arr[0]
 				pos[1] += arr[1]
